@@ -3,10 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Izziv Pečke - Lestvica</title>
+    <title>Izziv Pečke - Lestvica vzponov</title>
+    <!-- Tailwind CSS za moderen izgled -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PapaParse za branje CSV podatkov -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <!-- FontAwesome za ikone -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .active-tab {
+            border-bottom: 3px solid #16a34a;
+            color: #16a34a;
+            font-weight: bold;
+        }
+    </style>
 </head>
-<body>
-    <h1>Izziv Pečke</h1>
-    <p>Spletna stran je v izdelavi.</p>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans">
+
+    <!-- Glava / Header -->
+    <header class="bg-green-700 text-white shadow-lg py-8 px-4 text-center">
+        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight">Izziv Pečke</h1>
+        <p class="mt-2 text-green-100 text-sm md:text-base">Pregled lestvic vzponov v živahni in moderni obliki</p>
+    </header>
+
+    <!-- Glavni vsebnik -->
+    <main class="max-w-4xl mx-auto px-4 py-8">
+        
+        <!-- Zavihki (Tabs) -->
+        <div class="flex border-b border-slate-200 mb-6 bg-white rounded-t-lg shadow-sm overflow-x-auto">
+            <button onclick="switchTab('pohodi')" id="tab-pohodi" class="flex-1 py-4 px-6 text-center font-medium text-slate-600 hover:text-green-600 transition active-tab">
+                <i class="fa-solid font-bold fa-person-hiking mr-2"></i>Pohodi
+            </button>
+            <button onclick="switchTab('kolo')" id="tab-kolo" class="flex-1 py-4 px-6 text-center font-medium text-slate-600 hover:text-green-600 transition">
+                <i class="fa-solid fa-bicycle mr-2"></i>Kolo
+            </button>
+            <button onclick="switchTab('ekolo')" id="tab-ekolo" class="flex-1 py-4 px-6 text-center font-medium text-slate-600 hover:text-green-600 transition">
+                <i class="fa-solid fa-bolt mr-2"></i>eKolo
+            </button>
+        </div>
+
+        <!-- Iskalnik -->
+        <div class="mb-6">
+            <div class="relative">
+                <input type="text" id="search-input" onkeyup="filterTable()" placeholder="Poišči po imenu ali priimku..." 
+                       class="w-full pl-10 pr-4 py-3 bg-white border border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400"></i>
+            </div>
+        </div>
+
+        <!-- Tabela -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-600 uppercase text-xs font-bold tracking-wider">
+                            <th class="py-3 px-4 text-center">Uvr.</th>
+                            <th class="py-3 px-4">Ime in priimek</th>
+                            <th class="py-3 px-4 text-center">Vzponov</th>
+                            <th class="py-3 px-4 text-right">Zadnji obisk</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-slate-100 text-sm">
+                        <!-- Tukaj se naložijo podatki -->
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-slate-400">
+                                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                                <p>Nalaganje podatkov...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // === TUKAJ VSTAVITE VAŠE CSV POVEZAVE IZ GOOGLE SHEETS ===
+        const CSV_URLS = {
+            pohodi: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pub?gid=1188154452&single=true&output=csv",
+            kolo: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pub?gid=474770535&single=true&output=csv",
+            ekolo: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pub?gid=2059665635&single=true&output=csv"
+        };
+
+        let currentData = [];
+        let activeTab = 'pohodi';
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.remove('active-tab'));
+            document.getElementById(`tab-${tab}`).classList.add('active-tab');
+            document.getElementById('search-input').value = '';
+            loadData(tab);
+        }
+
+        function loadData(tab) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><p>Nalaganje podatkov...</p></td></tr>`;
+
+            const url = CSV_URLS[tab];
+            if (!url || url.includes("TUKAJ_PASTE")) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-amber-600 font-medium">Prosimo, vstavite veljavno CSV povezavo v kodo programa!</td></tr>`;
+                return;
+            }
+
+            Papa.parse(url, {
+                download: true,
+                header: false,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processAndRenderData(results.data);
+                },
+                error: function(err) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-500">Napaka pri nalaganju podatkov. Pridobivanje ni uspelo.</td></tr>`;
+                }
+            });
+        }
+
+        function processAndRenderData(rows) {
+            // Preskočimo glavo tabele, izberemo le vrstice z uvrstitvijo
+            const dataRows = rows.filter(row => row[0] && !isNaN(parseInt(row[0])));
+            currentData = dataRows;
+            renderTable(currentData);
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-slate-400">Ni najdenih rezultatov.</td></tr>`;
+                return;
+            }
+
+            data.forEach(row => {
+                const uvrstitev = row[0] ? row[0].replace('.', '').trim() : '';
+                const ime = row[1] || '';
+                const vzponov = row[2] || '0';
+                const zadnjiObisk = row[3] || '';
+
+                let uvrstitevBadge = `<span class="font-semibold text-slate-600">${uvrstitev}.</span>`;
+                if (uvrstitev === '1') uvrstitevBadge = `<span class="inline-flex items-center justify-center w-7 h-7 bg-amber-100 text-amber-700 font-bold rounded-full">🥇 1</span>`;
+                else if (uvrstitev === '2') uvrstitevBadge = `<span class="inline-flex items-center justify-center w-7 h-7 bg-slate-200 text-slate-700 font-bold rounded-full">🥈 2</span>`;
+                else if (uvrstitev === '3') uvrstitevBadge = `<span class="inline-flex items-center justify-center w-7 h-7 bg-amber-800/10 text-amber-900 font-bold rounded-full">🥉 3</span>`;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-center">${uvrstitevBadge}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-800">${ime}</td>
+                    <td class="py-3 px-4 text-center"><span class="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full">${vzponov}</span></td>
+                    <td class="py-3 px-4 text-right text-slate-500 text-xs">${zadnjiObisk}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterTable() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = currentData.filter(row => {
+                const ime = (row[1] || '').toLowerCase();
+                return ime.includes(query);
+            });
+            renderTable(filtered);
+        }
+
+        // Začetno nalaganje
+        loadData('pohodi');
+    </script>
 </body>
 </html>
