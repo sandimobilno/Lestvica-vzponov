@@ -25,7 +25,7 @@
         <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight">Izziv Pečke</h1>
     </header>
 
-    <!-- Glavni vsebnik (zožan na max-w-2xl) -->
+    <!-- Glavni vsebnik -->
     <main class="max-w-2xl mx-auto px-4 py-6">
         
         <!-- Zavihki (Tabs) -->
@@ -63,7 +63,6 @@
                         </tr>
                     </thead>
                     <tbody id="table-body" class="divide-y divide-slate-100 text-sm">
-                        <!-- Tukaj se naložijo podatki -->
                         <tr>
                             <td colspan="4" class="text-center py-8 text-slate-400">
                                 <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
@@ -77,11 +76,11 @@
     </main>
 
     <script>
-        // === TUKAJ VSTAVITE VAŠE CSV POVEZAVE IZ GOOGLE SHEETS ===
+        // === PREOBLIKOVANE GOOGLE SHEETS CSV POVEZAVE ===
         const CSV_URLS = {
-            pohodi: "https://docs.google.com/spreadsheets/d/1peIJF7EFQ4kl2GsoPTqJNNXzM-Hr1v20cZwpzVdupXU/edit?gid=1188154452#gid=1188154452",
-            kolo: "https://docs.google.com/spreadsheets/d/1peIJF7EFQ4kl2GsoPTqJNNXzM-Hr1v20cZwpzVdupXU/edit?gid=474770535#gid=474770535",
-            ekolo: "https://docs.google.com/spreadsheets/d/1peIJF7EFQ4kl2GsoPTqJNNXzM-Hr1v20cZwpzVdupXU/edit?gid=2059665635#gid=2059665635"
+            pohodi: "https://docs.google.com/spreadsheets/d/1peIJF7EFQ4kl2GsoPTqJNNXzM-Hr1v20cZwpzVdupXU/gviz/tq?tqx=out:csv&gid=1188154452",
+            kolo: "https://docs.google.com/spreadsheets/d/1peIJF7EFQ4kl2GsoPTqJNNXzM-Hr1v20cZwpzVdupXU/gviz/tq?tqx=out:csv&gid=474770535",
+            ekolo: "https://docs.google.com/spreadsheets/d/1peIJF7EFQ4kl2GsoPTqJNNXzM-Hr1v20cZwpzVdupXU/gviz/tq?tqx=out:csv&gid=2059665635"
         };
 
         let currentData = [];
@@ -100,10 +99,6 @@
             tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><p>Nalaganje podatkov...</p></td></tr>`;
 
             const url = CSV_URLS[tab];
-            if (!url || url.includes("TUKAJ_PASTE")) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-amber-600 font-medium">Prosimo, vstavite veljavno CSV povezavo v kodo programa!</td></tr>`;
-                return;
-            }
 
             Papa.parse(url, {
                 download: true,
@@ -113,14 +108,14 @@
                     processAndRenderData(results.data);
                 },
                 error: function(err) {
-                    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-500">Napaka pri nalaganju podatkov. Pridobivanje ni uspelo.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-500">Napaka pri nalaganju podatkov. Preverite, ali je Google Tabela javno dostopna.</td></tr>`;
                 }
             });
         }
 
         function processAndRenderData(rows) {
-            // Preskočimo glavo tabele, izberemo le vrstice z uvrstitvijo
-            const dataRows = rows.filter(row => row[0] && !isNaN(parseInt(row[0])));
+            // Filtriramo vrstice, ki imajo v prvem stolpcu številko uvrstitve
+            const dataRows = rows.filter(row => row[0] && !isNaN(parseInt(row[0].toString().replace('.', '').trim())));
             currentData = dataRows;
             renderTable(currentData);
         }
@@ -135,7 +130,7 @@
             }
 
             data.forEach(row => {
-                const uvrstitev = row[0] ? row[0].replace('.', '').trim() : '';
+                const uvrstitev = row[0] ? row[0].toString().replace('.', '').trim() : '';
                 const ime = row[1] || '';
                 const vzponov = row[2] || '0';
                 const zadnjiObisk = row[3] || '';
