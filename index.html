@@ -1,305 +1,173 @@
 <!DOCTYPE html>
 <html lang="sl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Izziv Pečke - Lestvica</title>
-  <style>
-    :root {
-      --primary-color: #10b981;
-      --bg-color: #f8fafc;
-      --card-bg: #ffffff;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --border-color: #e2e8f0;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      padding: 20px;
-      display: flex;
-      justify-content: center;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 800px;
-      background: var(--card-bg);
-      border-radius: 12px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      padding: 24px;
-    }
-
-    /* Zavihki */
-    .tabs {
-      display: flex;
-      border-bottom: 2px solid var(--border-color);
-      margin-bottom: 20px;
-    }
-
-    .tab-btn {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      background: none;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .tab-btn.active {
-      color: var(--primary-color);
-      border-bottom: 3px solid var(--primary-color);
-      margin-bottom: -2px;
-    }
-
-    /* Iskalnik */
-    .search-box {
-      position: relative;
-      margin-bottom: 20px;
-    }
-
-    .search-box input {
-      width: 100%;
-      padding: 12px 16px 12px 40px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .search-box input:focus {
-      border-color: var(--primary-color);
-    }
-
-    .search-icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-    }
-
-    /* Tabela */
-    .table-responsive {
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-    }
-
-    th {
-      background-color: #f1f5f9;
-      padding: 12px 16px;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    td {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border-color);
-      font-size: 15px;
-    }
-
-    tr:hover {
-      background-color: #f8fafc;
-    }
-
-    .status-msg {
-      text-align: center;
-      padding: 30px;
-      color: var(--text-muted);
-      font-size: 15px;
-    }
-
-    .error-msg {
-      color: #ef4444;
-    }
-
-    .email-cell {
-      color: var(--text-muted);
-      font-size: 13px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Izziv Pečke - Lestvica vzponov</title>
+    <!-- Tailwind CSS za moderen izgled -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PapaParse za branje CSV podatkov -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <!-- FontAwesome za ikone -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .active-tab {
+            border-bottom: 3px solid #16a34a;
+            color: #16a34a;
+            font-weight: bold;
+        }
+    </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans">
 
-  <div class="container">
-    <!-- Navigacijski Zavihki -->
-    <div class="tabs">
-      <button class="tab-btn active" onclick="spremeniZavihek('pohodi', this)">
-        🚶 Pohodi
-      </button>
-      <button class="tab-btn" onclick="spremeniZavihek('kolo', this)">
-        🚴 Kolo
-      </button>
-      <button class="tab-btn" onclick="spremeniZavihek('ekolo', this)">
-        ⚡ eKolo
-      </button>
-    </div>
+    <!-- Glava / Header -->
+    <header class="bg-green-700 text-white shadow-lg py-6 px-4 text-center">
+        <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight">Izziv Pečke</h1>
+    </header>
 
-    <!-- Iskalnik -->
-    <div class="search-box">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="searchInput" placeholder="Poišči po imenu ali priimku..." onkeyup="filtrirajTabelo()">
-    </div>
-
-    <!-- Tabela -->
-    <div class="table-responsive">
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 60px;">UVR.</th>
-            <th>IME IN PRIIMEK</th>
-            <th style="width: 100px; text-align: center;">VZPONOV</th>
-            <th>ZADNJI OBISK</th>
-            <th>EMAIL</th>
-          </tr>
-        </thead>
-        <tbody id="tabelaTelo">
-          <tr>
-            <td colspan="5" class="status-msg">Nalaganje podatkov...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <script>
-    // URL naslovi za posamezne liste (uporabite vaše obstoječe pubhtml povezave)
-    const URLS = {
-      pohodi: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEIEROXZyBU-a4mieLdjiOgJ52TQHI6Qzh38qmKVLEn_gnU3PmD6/pubhtml?gid=0&single=true",
-      kolo: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pubhtml#gid=474770535",
-      ekolo: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pubhtml#gid=2059665635"
-    };
-
-    let trenutniPodatki = [];
-    let trenutniTip = 'pohodi';
-
-    // Ob prvem zagonu naložimo Pohode
-    window.onload = () => {
-      naloziPodatke('pohodi');
-    };
-
-    function spremeniZavihek(tip, gumb) {
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      gumb.classList.add('active');
-      trenutniTip = tip;
-      document.getElementById('searchInput').value = '';
-      naloziPodatke(tip);
-    }
-
-    async function naloziPodatke(tip) {
-      const telo = document.getElementById('tabelaTelo');
-      telo.innerHTML = '<tr><td colspan="5" class="status-msg">Nalaganje podatkov...</td></tr>';
-
-      try {
-        let rawUrl = URLS[tip];
+    <!-- Glavni vsebnik (zožan na max-w-2xl) -->
+    <main class="max-w-2xl mx-auto px-4 py-6">
         
-        if (!rawUrl || rawUrl.includes("TUKAJ_VAŠ")) {
-          throw new Error("URL za ta zavihek še ni nastavljen.");
+        <!-- Zavihki (Tabs) -->
+        <div class="flex border-b border-slate-200 mb-5 bg-white rounded-t-lg shadow-sm overflow-x-auto">
+            <button onclick="switchTab('pohodi')" id="tab-pohodi" class="flex-1 py-3 px-4 text-center font-medium text-slate-600 hover:text-green-600 transition active-tab">
+                <i class="fa-solid fa-person-hiking mr-2"></i>Pohodi
+            </button>
+            <button onclick="switchTab('kolo')" id="tab-kolo" class="flex-1 py-3 px-4 text-center font-medium text-slate-600 hover:text-green-600 transition">
+                <i class="fa-solid fa-bicycle mr-2"></i>Kolo
+            </button>
+            <button onclick="switchTab('ekolo')" id="tab-ekolo" class="flex-1 py-3 px-4 text-center font-medium text-slate-600 hover:text-green-600 transition">
+                <i class="fa-solid fa-bolt mr-2"></i>eKolo
+            </button>
+        </div>
+
+        <!-- Iskalnik -->
+        <div class="mb-5">
+            <div class="relative">
+                <input type="text" id="search-input" onkeyup="filterTable()" placeholder="Poišči po imenu ali priimku..." 
+                       class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400"></i>
+            </div>
+        </div>
+
+        <!-- Tabela -->
+        <div class="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-600 uppercase text-xs font-bold tracking-wider">
+                            <th class="py-3 px-3 text-center w-16">Uvr.</th>
+                            <th class="py-3 px-3">Ime in priimek</th>
+                            <th class="py-3 px-3 text-center">Vzponov</th>
+                            <th class="py-3 px-3 text-right">Zadnji obisk</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-slate-100 text-sm">
+                        <!-- Tukaj se naložijo podatki -->
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-slate-400">
+                                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                                <p>Nalaganje podatkov...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // === TUKAJ VSTAVITE VAŠE CSV POVEZAVE IZ GOOGLE SHEETS ===
+        const CSV_URLS = {
+            pohodi: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pubhtml",
+            kolo: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pubhtml#gid=474770535",
+            ekolo: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pubhtml#gid=2059665635"
+        };
+
+        let currentData = [];
+        let activeTab = 'pohodi';
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.remove('active-tab'));
+            document.getElementById(`tab-${tab}`).classList.add('active-tab');
+            document.getElementById('search-input').value = '';
+            loadData(tab);
         }
 
-        // Trik: Spremenimo pubhtml v CSV izvoz
-        let csvUrl = rawUrl.replace("/pubhtml", "/pub").replace("single=true", "output=csv");
-        if (!csvUrl.includes("output=csv")) {
-          csvUrl += (csvUrl.includes("?") ? "&" : "?") + "output=csv";
+        function loadData(tab) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><p>Nalaganje podatkov...</p></td></tr>`;
+
+            const url = CSV_URLS[tab];
+            if (!url || url.includes("TUKAJ_PASTE")) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-amber-600 font-medium">Prosimo, vstavite veljavno CSV povezavo v kodo programa!</td></tr>`;
+                return;
+            }
+
+            Papa.parse(url, {
+                download: true,
+                header: false,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processAndRenderData(results.data);
+                },
+                error: function(err) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-500">Napaka pri nalaganju podatkov. Pridobivanje ni uspelo.</td></tr>`;
+                }
+            });
         }
 
-        const response = await fetch(csvUrl);
-        if (!response.ok) throw new Error("Omrežna napaka pri nalaganju.");
+        function processAndRenderData(rows) {
+            // Preskočimo glavo tabele, izberemo le vrstice z uvrstitvijo
+            const dataRows = rows.filter(row => row[0] && !isNaN(parseInt(row[0])));
+            currentData = dataRows;
+            renderTable(currentData);
+        }
 
-        const csvText = await response.text();
-        trenutniPodatki = pretvoriCSVvPolje(csvText);
-        
-        // Prikaz podatkov (preskočimo glavo tabele, če obstaja)
-        prikaziPodatke(trenutniPodatki);
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
 
-      } catch (err) {
-        console.error(err);
-        telo.innerHTML = `<tr><td colspan="5" class="status-msg error-msg">
-          Napaka pri nalaganju podatkov. Preverite, ali je povezava pravilno nastavljena.
-        </td></tr>`;
-      }
-    }
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-slate-400">Ni najdenih rezultatov.</td></tr>`;
+                return;
+            }
 
-    function pretvoriCSVvPolje(text) {
-      const vrstice = text.split("\n").filter(v => v.trim() !== "");
-      return vrstice.map(vrstica => {
-        // Enostaven regex za razbijanje CSV vrstic
-        const celice = vrstica.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || vrstica.split(",");
-        return celice.map(c => c.replace(/^"(.*)"$/, '$1').trim());
-      });
-    }
+            data.forEach(row => {
+                const uvrstitev = row[0] ? row[0].replace('.', '').trim() : '';
+                const ime = row[1] || '';
+                const vzponov = row[2] || '0';
+                const zadnjiObisk = row[3] || '';
 
-    function prikaziPodatke(podatki) {
-      const telo = document.getElementById('tabelaTelo');
-      telo.innerHTML = '';
+                let uvrstitevBadge = `<span class="font-semibold text-slate-600">${uvrstitev}.</span>`;
+                if (uvrstitev === '1') uvrstitevBadge = `<span class="inline-flex items-center justify-center w-7 h-7 bg-amber-100 text-amber-700 font-bold rounded-full">🥇 1</span>`;
+                else if (uvrstitev === '2') uvrstitevBadge = `<span class="inline-flex items-center justify-center w-7 h-7 bg-slate-200 text-slate-700 font-bold rounded-full">🥈 2</span>`;
+                else if (uvrstitev === '3') uvrstitevBadge = `<span class="inline-flex items-center justify-center w-7 h-7 bg-amber-800/10 text-amber-900 font-bold rounded-full">🥉 3</span>`;
 
-      // Če so podatki prazni ali vsebujejo samo naslovno vrstico
-      if (podatki.length <= 1) {
-        telo.innerHTML = '<tr><td colspan="5" class="status-msg">Trenutno ni vpisov.</td></tr>';
-        return;
-      }
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                tr.innerHTML = `
+                    <td class="py-3 px-3 text-center">${uvrstitevBadge}</td>
+                    <td class="py-3 px-3 font-semibold text-slate-800">${ime}</td>
+                    <td class="py-3 px-3 text-center"><span class="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full">${vzponov}</span></td>
+                    <td class="py-3 px-3 text-right text-slate-500 text-xs">${zadnjiObisk}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
 
-      // Preskočimo prvo vrstico (glavo tabele iz Google Sheet-a)
-      const vrsticeZaPrikaz = podatki.slice(1);
+        function filterTable() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = currentData.filter(row => {
+                const ime = (row[1] || '').toLowerCase();
+                return ime.includes(query);
+            });
+            renderTable(filtered);
+        }
 
-      vrsticeZaPrikaz.forEach((vrstica) => {
-        // Izberemo stolpce: Uvrstitev (0), Ime (1), Vzponov (2), Zadnji obisk (3), Email (4)
-        const uvr = vrstica[0] || '';
-        const ime = vrstica[1] || '';
-        const vzponov = vrstica[2] || '0';
-        const zadnjiObisk = vrstica[3] || '';
-        const email = vrstica[4] || '';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${uvr}</strong></td>
-          <td>${ime}</td>
-          <td style="text-align: center;"><strong>${vzponov}</strong></td>
-          <td>${zadnjiObisk}</td>
-          <td class="email-cell">${email}</td>
-        `;
-        telo.appendChild(tr);
-      });
-    }
-
-    function filtrirajTabelo() {
-      const vnos = document.getElementById('searchInput').value.toLowerCase();
-      
-      if (trenutniPodatki.length <= 1) return;
-
-      const filtrirani = trenutniPodatki.slice(1).filter(vrstica => {
-        const imePriimek = (vrstica[1] || '').toLowerCase();
-        return imePriimek.includes(vnos);
-      });
-
-      // Ustvarimo strukturo z naslovno vrstico + filtriranimi podatki
-      prikaziPodatke([trenutniPodatki[0], ...filtrirani]);
-    }
-  </script>
-
+        // Začetno nalaganje
+        loadData('pohodi');
+    </script>
 </body>
 </html>
