@@ -4,82 +4,146 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Izziv Pečke - Lestvica vzponov</title>
-    <!-- Tailwind CSS za moderen izgled -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PapaParse za branje CSV podatkov -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <!-- FontAwesome za ikone -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        .active-tab {
-            border-bottom: 3px solid #16a34a;
-            color: #16a34a;
-            font-weight: bold;
+        /* Uskladitev pisave in ozadja s sliko */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #eaf1ed;
+        }
+
+        /* Glavna bela kartica */
+        .card-container {
+            background-color: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Stil za gumba/zavihke (Pohod, Kolo, eKolo) */
+        .tab-btn {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            border-color: #cbd5e1;
+            background-color: #f8fafc;
+        }
+
+        /* Aktivni zavihek - zelena obroba/stil */
+        .tab-btn.active-tab {
+            border: 2px solid #2e7d32;
+            color: #2e7d32;
+            background-color: #ffffff;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(46, 125, 50, 0.1);
+        }
+
+        /* Zeleni gumb v slogu "Lestvica" s slike */
+        .btn-green-outline {
+            border: 2px solid #2e7d32;
+            color: #2e7d32;
+            font-weight: 700;
+            border-radius: 12px;
+            background-color: #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        .btn-green-outline:hover {
+            background-color: #f4fbf5;
+        }
+
+        /* Vnosna polja */
+        .custom-input {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background-color: #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        .custom-input:focus {
+            border-color: #2e7d32;
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
+            outline: none;
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen font-sans">
+<body class="text-slate-800 min-h-screen py-6 px-4 flex justify-center items-start">
 
-    <!-- Glava / Header -->
-    <header class="bg-white shadow-sm border-b border-slate-200 py-6 px-4 text-center">
-        <h1 style="color: #2e7d32; font-size: 26px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; text-align: center;">Izziv Pečke - lestvica</h1>
-        <div>
-            <a href="https://sandimobilno.github.io/Pecke-Vpis/" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors">
-                <i class="fa-solid fa-arrow-left"></i> nazaj na vpis vzpona
-            </a>
-        </div>
-    </header>
+    <!-- Glavni vsebnik v obliki kartice s slike -->
+    <div class="card-container w-full max-w-xl p-6 md:p-8 my-auto">
 
-    <!-- Glavni vsebnik (zožan na max-w-2xl) -->
-    <main class="max-w-2xl mx-auto px-4 py-6">
-        
-        <!-- Zavihki (Tabs) -->
-        <div class="flex border-b border-slate-200 mb-5 bg-white rounded-t-lg shadow-sm overflow-x-auto">
-            <button onclick="switchTab('pohodi')" id="tab-pohodi" class="flex-1 py-3 px-4 text-center font-medium text-slate-600 hover:text-green-600 transition active-tab">
-                <i class="fa-solid fa-person-hiking mr-2"></i>Pohod
-            </button>
-            <button onclick="switchTab('kolo')" id="tab-kolo" class="flex-1 py-3 px-4 text-center font-medium text-slate-600 hover:text-green-600 transition">
-                <i class="fa-solid fa-bicycle mr-2"></i>Kolo
-            </button>
-            <button onclick="switchTab('ekolo')" id="tab-ekolo" class="flex-1 py-3 px-4 text-center font-medium text-slate-600 hover:text-green-600 transition">
-                <i class="fa-solid fa-bolt mr-2"></i>eKolo
-            </button>
-        </div>
-
-        <!-- Iskalnik -->
-        <div class="mb-5">
-            <div class="relative">
-                <input type="text" id="search-input" onkeyup="filterTable()" placeholder="Poišči po imenu ali priimku..." 
-                       class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400"></i>
+        <!-- Glava / Header -->
+        <header class="text-center mb-6">
+            <h1 style="color: #2e7d32; font-size: 28px; font-weight: 800; margin-bottom: 12px; letter-spacing: -0.5px;">
+                Izziv Pečke - lestvica
+            </h1>
+            <div>
+                <a href="https://sandimobilno.github.io/Pecke-Vpis/" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                    <i class="fa-solid fa-arrow-left text-xs"></i> nazaj na vpis vzpona
+                </a>
             </div>
-        </div>
+        </header>
 
-        <!-- Tabela -->
-        <div class="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-600 uppercase text-xs font-bold tracking-wider">
-                            <th class="py-3 px-3 text-center w-16">Uvr.</th>
-                            <th class="py-3 px-3">Ime in priimek</th>
-                            <th class="py-3 px-3 text-center">Vzponov</th>
-                            <th class="py-3 px-3 text-right">Zadnji obisk</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body" class="divide-y divide-slate-100 text-sm">
-                        <!-- Tukaj se naložijo podatki -->
-                        <tr>
-                            <td colspan="4" class="text-center py-8 text-slate-400">
-                                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
-                                <p>Nalaganje podatkov...</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+        <main>
+            <!-- Zavihki (Način vzpona: Pohod, Kolo, eKolo) -->
+            <div class="grid grid-cols-3 gap-3 mb-5">
+                <button onclick="switchTab('pohodi')" id="tab-pohodi" class="tab-btn py-3 px-2 text-center text-sm md:text-base active-tab">
+                    <i class="fa-solid fa-person-hiking mr-1.5 hidden sm:inline"></i>Pohod
+                </button>
+                <button onclick="switchTab('kolo')" id="tab-kolo" class="tab-btn py-3 px-2 text-center text-sm md:text-base">
+                    <i class="fa-solid fa-bicycle mr-1.5 hidden sm:inline"></i>Kolo
+                </button>
+                <button onclick="switchTab('ekolo')" id="tab-ekolo" class="tab-btn py-3 px-2 text-center text-sm md:text-base">
+                    <i class="fa-solid fa-bolt mr-1.5 hidden sm:inline"></i>eKolo
+                </button>
             </div>
-        </div>
-    </main>
+
+            <!-- Iskalnik -->
+            <div class="mb-5">
+                <div class="relative">
+                    <input type="text" id="search-input" onkeyup="filterTable()" placeholder="Poišči po imenu ali priimku..." 
+                           class="w-full pl-11 pr-4 py-3 custom-input text-slate-700 placeholder-slate-400 text-sm">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
+                </div>
+            </div>
+
+            <!-- Tabela z rezultati -->
+            <div class="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 uppercase text-xs font-bold tracking-wider border-b border-slate-200">
+                                <th class="py-3.5 px-3 text-center w-16">Uvr.</th>
+                                <th class="py-3.5 px-3">Ime in priimek</th>
+                                <th class="py-3.5 px-3 text-center">Vzponov</th>
+                                <th class="py-3.5 px-3 text-right">Zadnji obisk</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Tukaj se naložijo podatki -->
+                            <tr>
+                                <td colspan="4" class="text-center py-8 text-slate-400">
+                                    <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
+                                    <p>Nalaganje podatkov...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <script>
         // === TUKAJ VSTAVITE VAŠE CSV POVEZAVE IZ GOOGLE SHEETS ===
@@ -155,7 +219,7 @@
 
                 // Prikaz uvrstitve in vzponov le, ko obstaja vsaj 1 vzpon (rezultat > 0)
                 if (stVzponov > 0) {
-                    vzponovBadge = `<span class="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full">${stVzponov}</span>`;
+                    vzponovBadge = `<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">${stVzponov}</span>`;
 
                     if (uvrstitev === '1') {
                         uvrstitevBadge = `<span class="inline-flex items-center justify-center w-7 h-7 bg-amber-100 text-amber-700 font-bold rounded-full">🥇 1</span>`;
