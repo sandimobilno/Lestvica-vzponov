@@ -231,8 +231,14 @@
                     }
                 }
 
+                // Določitev spodnje obrobe (odebeljena pod 3. in pod vsakim 10. uvrščenim)
+                let borderClass = 'border-b border-slate-100';
+                if (!isNaN(uvrstitevNum) && (uvrstitevNum === 3 || uvrstitevNum % 10 === 0)) {
+                    borderClass = 'border-b-2 border-slate-300';
+                }
+
                 const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                tr.className = `hover:bg-slate-50 transition ${borderClass}`;
                 tr.innerHTML = `
                     <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${uvrstitevBadge}</td>
                     <td class="py-2.5 px-1.5 sm:px-3 ${nameStyleClass} leading-tight">${ime}</td>
