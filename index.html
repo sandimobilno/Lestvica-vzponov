@@ -109,7 +109,7 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="bg-slate-50 text-slate-500 uppercase text-[10px] sm:text-xs font-bold tracking-wider border-b-2 border-slate-300">
+                            <tr class="bg-slate-50 text-slate-500 uppercase text-[10px] sm:text-xs font-bold tracking-wider border-b border-slate-300">
                                 <th class="py-3 px-1.5 sm:px-3 text-center w-12 sm:w-16 whitespace-nowrap">Uvr.</th>
                                 <th class="py-3 px-1.5 sm:px-3">Ime in priimek</th>
                                 <th class="py-3 px-1.5 sm:px-3 text-center whitespace-nowrap">Vzponov</th>
@@ -231,10 +231,10 @@
                     }
                 }
 
-                // Subtilno poudarjena 2px obroba pod 3. in vsakim 10. uvrščenim
+                // Subtilno poudarjena 1px temnejša obroba pod 3. in vsakim 10. uvrščenim
                 let borderClass = 'border-b border-slate-100';
                 if (!isNaN(uvrstitevNum) && (uvrstitevNum === 3 || uvrstitevNum % 10 === 0)) {
-                    borderClass = 'border-b-2 border-slate-300';
+                    borderClass = 'border-b border-slate-300';
                 }
 
                 const tr = document.createElement('tr');
