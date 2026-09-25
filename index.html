@@ -12,20 +12,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* Uskladitev pisave in ozadja s sliko */
+        /* Uskladitev pisave in ozadja */
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #eaf1ed;
         }
 
-        /* Glavna bela kartica - prilagojena za mobilni vrh */
+        /* Glavna bela kartica */
         .card-container {
             background-color: #ffffff;
             border-radius: 20px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
         }
 
-        /* Stil za gumba/zavihke (Pohod, Kolo, eKolo) */
+        /* Stil za gumba/zavihke */
         .tab-btn {
             background-color: #ffffff;
             border: 1px solid #e2e8f0;
@@ -40,7 +40,7 @@
             background-color: #f8fafc;
         }
 
-        /* Aktivni zavihek - zelena obroba/stil */
+        /* Aktivni zavihek */
         .tab-btn.active-tab {
             border: 2px solid #2e7d32;
             color: #2e7d32;
@@ -66,7 +66,7 @@
 </head>
 <body class="text-slate-800 min-h-screen pt-2 sm:pt-6 pb-6 px-2 sm:px-4 flex justify-center items-start">
 
-    <!-- Glavni vsebnik v obliki kartice s slike -->
+    <!-- Glavni vsebnik -->
     <div class="card-container w-full max-w-xl p-3 sm:p-6 my-0 sm:my-auto">
 
         <!-- Glava / Header -->
@@ -82,7 +82,7 @@
         </header>
 
         <main>
-            <!-- Zavihki (Način vzpona: Pohod, Kolo, eKolo) -->
+            <!-- Zavihki (Način vzpona) -->
             <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
                 <button onclick="switchTab('pohodi')" id="tab-pohodi" class="tab-btn py-2.5 px-1 text-center text-xs sm:text-base active-tab">
                     <i class="fa-solid fa-person-hiking mr-1.5"></i>Pohod
@@ -117,7 +117,6 @@
                             </tr>
                         </thead>
                         <tbody id="table-body" class="text-xs sm:text-sm">
-                            <!-- Tukaj se naložijo podatki -->
                             <tr>
                                 <td colspan="4" class="text-center py-8 text-slate-400">
                                     <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
@@ -132,7 +131,6 @@
     </div>
 
     <script>
-        // === TUKAJ VSTAVITE VAŠE CSV POVEZAVE IZ GOOGLE SHEETS ===
         const CSV_URLS = {
             pohodi: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pub?output=csv&gid=1188154452",
             kolo: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pub?output=csv&gid=474770535",
@@ -174,7 +172,6 @@
         }
 
         function processAndRenderData(rows) {
-            // Izberemo le vrstice z uvrstitvijo IN vnesenim imenom ter priimkom
             const dataRows = rows.filter(row => {
                 const imaUvrstitvov = row[0] && !isNaN(parseInt(row[0]));
                 const imaIme = row[1] && row[1].trim() !== '';
@@ -204,7 +201,6 @@
                 let uvrstitevBadge = `<span class="text-slate-400">-</span>`;
                 let vzponovBadge = `<span class="text-slate-400">-</span>`;
 
-                // Prikaz uvrstitve in vzponov le, ko obstaja vsaj 1 vzpon (rezultat > 0)
                 if (stVzponov > 0) {
                     vzponovBadge = `<span class="bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full">${stVzponov}</span>`;
 
@@ -221,7 +217,6 @@
                     }
                 }
 
-                // Določitev sloga pisave za Ime in priimek
                 let nameStyleClass = "font-semibold text-slate-800";
                 if (!isNaN(uvrstitevNum)) {
                     if (uvrstitevNum >= 1 && uvrstitevNum <= 3) {
@@ -231,7 +226,6 @@
                     }
                 }
 
-                // Subtilno poudarjena 1px temnejša obroba pod 3. in vsakim 10. uvrščenim
                 let borderClass = 'border-b border-slate-100';
                 if (!isNaN(uvrstitevNum) && (uvrstitevNum === 3 || uvrstitevNum % 10 === 0)) {
                     borderClass = 'border-b border-slate-300';
@@ -258,8 +252,10 @@
             renderTable(filtered);
         }
 
-        // Začetno nalaganje
-        loadData('pohodi');
+        // Začetno nalaganje po tem, ko se DOM v celoti naloži
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData('pohodi');
+        });
     </script>
 </body>
 </html>
