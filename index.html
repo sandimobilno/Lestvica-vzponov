@@ -195,6 +195,7 @@
 
             data.forEach(row => {
                 const uvrstitev = row[0] ? row[0].replace('.', '').trim() : '';
+                const uvrstitevNum = parseInt(uvrstitev, 10);
                 const ime = row[1] || '';
                 const vzponovRaw = row[2] ? row[2].trim() : '';
                 const stVzponov = parseInt(vzponovRaw, 10) || 0;
@@ -208,13 +209,25 @@
                     vzponovBadge = `<span class="bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full">${stVzponov}</span>`;
 
                     if (uvrstitev === '1') {
-                        uvrstitevBadge = `<span class="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 bg-amber-100 text-amber-700 font-bold rounded-full text-xs sm:text-sm">🥇 1</span>`;
+                        uvrstitevBadge = `<span class="inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 bg-amber-100 text-amber-700 font-bold rounded-full text-base sm:text-lg">🥇 1</span>`;
                     } else if (uvrstitev === '2') {
-                        uvrstitevBadge = `<span class="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 bg-slate-200 text-slate-700 font-bold rounded-full text-xs sm:text-sm">🥈 2</span>`;
+                        uvrstitevBadge = `<span class="inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 bg-slate-200 text-slate-700 font-bold rounded-full text-base sm:text-lg">🥈 2</span>`;
                     } else if (uvrstitev === '3') {
-                        uvrstitevBadge = `<span class="inline-flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 bg-amber-800/10 text-amber-900 font-bold rounded-full text-xs sm:text-sm">🥉 3</span>`;
+                        uvrstitevBadge = `<span class="inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 bg-amber-800/10 text-amber-900 font-bold rounded-full text-base sm:text-lg">🥉 3</span>`;
+                    } else if (!isNaN(uvrstitevNum) && uvrstitevNum >= 4 && uvrstitevNum <= 10) {
+                        uvrstitevBadge = `<span class="font-bold text-slate-700 text-sm sm:text-base">${uvrstitev}.</span>`;
                     } else {
                         uvrstitevBadge = `<span class="font-semibold text-slate-600">${uvrstitev}.</span>`;
+                    }
+                }
+
+                // Določitev sloga pisave za Ime in priimek
+                let nameStyleClass = "font-semibold text-slate-800";
+                if (!isNaN(uvrstitevNum)) {
+                    if (uvrstitevNum >= 1 && uvrstitevNum <= 3) {
+                        nameStyleClass = "font-bold text-slate-900 text-sm sm:text-base";
+                    } else if (uvrstitevNum >= 4 && uvrstitevNum <= 10) {
+                        nameStyleClass = "font-bold text-slate-800 text-xs sm:text-sm";
                     }
                 }
 
@@ -222,7 +235,7 @@
                 tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
                 tr.innerHTML = `
                     <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${uvrstitevBadge}</td>
-                    <td class="py-2.5 px-1.5 sm:px-3 font-semibold text-slate-800 leading-tight">${ime}</td>
+                    <td class="py-2.5 px-1.5 sm:px-3 ${nameStyleClass} leading-tight">${ime}</td>
                     <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${vzponovBadge}</td>
                     <td class="py-2.5 px-1.5 sm:px-3 text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap">${zadnjiObisk}</td>
                 `;
