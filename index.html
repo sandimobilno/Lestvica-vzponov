@@ -126,6 +126,10 @@
                         </tbody>
                     </table>
                 </div>
+                <!-- Skupni seštevek vseh vzponov -->
+                <div id="total-summary" class="bg-slate-50 border-t-2 border-slate-300 px-4 py-3 text-right text-xs sm:text-sm font-bold text-slate-700">
+                    Skupaj vzponov: <span id="total-sum-value" class="text-emerald-700">0</span>
+                </div>
             </div>
         </main>
     </div>
@@ -151,6 +155,7 @@
         function loadData(tab) {
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><p>Nalaganje podatkov...</p></td></tr>`;
+            document.getElementById('total-sum-value').innerText = '0';
 
             const url = CSV_URLS[tab];
             if (!url || url.includes("TUKAJ_PASTE")) {
@@ -187,8 +192,11 @@
 
             if (data.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-slate-400">Ni najdenih rezultatov.</td></tr>`;
+                document.getElementById('total-sum-value').innerText = '0';
                 return;
             }
+
+            let totalVzponov = 0;
 
             data.forEach(row => {
                 const uvrstitev = row[0] ? row[0].replace('.', '').trim() : '';
@@ -197,6 +205,8 @@
                 const vzponovRaw = row[2] ? row[2].trim() : '';
                 const stVzponov = parseInt(vzponovRaw, 10) || 0;
                 const zadnjiObisk = row[3] || '';
+
+                totalVzponov += stVzponov;
 
                 let uvrstitevBadge = `<span class="text-slate-400">-</span>`;
                 let vzponovBadge = `<span class="text-slate-400">-</span>`;
@@ -241,6 +251,9 @@
                 `;
                 tbody.appendChild(tr);
             });
+
+            // Posodobitev prikaza skupnega seštevka
+            document.getElementById('total-sum-value').innerText = totalVzponov;
         }
 
         function filterTable() {
