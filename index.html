@@ -211,7 +211,7 @@
             data.forEach(row => {
                 const uvrstitev = row[0] ? row[0].replace('.', '').trim() : '';
                 const uvrstitevNum = parseInt(uvrstitev, 10);
-                let ime = row[1] || '';
+                const imeTekst = row[1] || '';
                 const vzponovRaw = row[2] ? row[2].trim() : '';
                 const stVzponov = parseInt(vzponovRaw, 10) || 0;
                 const zadnjiObisk = row[3] || '';
@@ -221,10 +221,11 @@
 
                 totalVzponov += stVzponov;
 
-                // Če se ime pojavi več kot enkrat (soimenjaki) in je email na voljo, ga pripnemo zraven imena
-                const imeClean = ime.trim().toLowerCase();
+                // Sestavimo vsebino celice za ime (če je soimenjak, dodamo email v novo vrstico spodaj)
+                let cellImeContent = `<div>${imeTekst}</div>`;
+                const imeClean = imeTekst.trim().toLowerCase();
                 if (nameCounts[imeClean] > 1 && email) {
-                    ime += ` <span class="text-slate-400 text-xs font-normal">(${email})</span>`;
+                    cellImeContent += `<div class="text-slate-400 text-[11px] sm:text-xs font-normal mt-0.5">${email}</div>`;
                 }
 
                 let uvrstitevBadge = `<span class="text-slate-400">-</span>`;
@@ -264,7 +265,7 @@
                 tr.className = `hover:bg-slate-50 transition ${borderClass}`;
                 tr.innerHTML = `
                     <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${uvrstitevBadge}</td>
-                    <td class="py-2.5 px-1.5 sm:px-3 ${nameStyleClass} leading-tight">${ime}</td>
+                    <td class="py-2.5 px-1.5 sm:px-3 ${nameStyleClass} leading-tight">${cellImeContent}</td>
                     <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${vzponovBadge}</td>
                     <td class="py-2.5 px-1.5 sm:px-3 text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap">${zadnjiObisk}</td>
                 `;
