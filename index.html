@@ -207,11 +207,16 @@
 
             let totalVzponov = 0;
 
-            // Priprava tekočega datuma za primerjavo
+            // Priprava tekočega datuma za primerjavo (lokalni datum naprave)
             const now = new Date();
             const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth() + 1;
+            const currentMonth = now.getMonth(); // 0-11
             const currentDay = now.getDate();
+
+            const slovenskiMeseci = {
+                'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'maj': 4, 'jun': 5,
+                'jul': 6, 'avg': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'dec': 11
+            };
 
             // 2. Korak: Izris tabele
             data.forEach(row => {
@@ -227,27 +232,46 @@
 
                 totalVzponov += stVzponov;
 
-                // Preverjanje, ali se datum zadnjega obiska ujema s tekočim dnevom
+                // Preverjanje ujemanja datuma (podpira standardne zapise in format z besednimi meseci npr. "sre. 28. okt. ob 9:38")
                 let isToday = false;
                 if (zadnjiObisk) {
-                    const cleanDateStr = zadnjiObisk.trim();
-                    // Poskus razčlenitve datuma (npr. "DD. MM. YYYY", "D.M.YYYY" ali ISO oblika "YYYY-MM-DD")
-                    const parts = cleanDateStr.split(/[\.\-\/]\s*/);
-                    if (parts.length >= 3) {
-                        let y, m, d;
-                        if (parts[0].length === 4) {
-                            // Oblika YYYY-MM-DD
-                            y = parseInt(parts[0], 10);
-                            m = parseInt(parts[1], 10);
-                            d = parseInt(parts[2], 10);
-                        } else {
-                            // Oblika DD. MM. YYYY
-                            d = parseInt(parts[0], 10);
-                            m = parseInt(parts[1], 10);
-                            y = parseInt(parts[2], 10);
+                    const cleanStr = zadnjiObisk.toLowerCase();
+                    
+                    // Poskus 1: Prepoznavanje vzorca "28. okt" ali "28. okt."
+                    let matched = false;
+                    for (let [mesecStr, mesecIdx] of Object.entries(slovenskiMeseci)) {
+                        if (cleanStr.includes(mesecStr)) {
+                            // Poiščimo število pred mesecem
+                            const regex = new RegExp(`(\\d{1,2})\\.?\\s*${mesecStr}`);
+                            const match = cleanStr.match(regex);
+                            if (match) {
+                                const d = parseInt(match[1], 10);
+                                if (d === currentDay && mesecIdx === currentMonth) {
+                                    isToday = true;
+                                    matched = true;
+                                }
+                            }
+                            break;
                         }
-                        if (y === currentYear && m === currentMonth && d === currentDay) {
-                            isToday = true;
+                    }
+
+                    // Poskus 2: Standardni številčni formati (npr. DD.MM.YYYY ali YYYY-MM-DD)
+                    if (!matched) {
+                        const parts = cleanStr.split(/[\.\-\/]\s*/);
+                        if (parts.length >= 3) {
+                            let y, m, d;
+                            if (parts[0].length === 4) {
+                                y = parseInt(parts[0], 10);
+                                m = parseInt(parts[1], 10) - 1;
+                                d = parseInt(parts[2], 10);
+                            } else {
+                                d = parseInt(parts[0], 10);
+                                m = parseInt(parts[1], 10) - 1;
+                                y = parseInt(parts[2], 10);
+                            }
+                            if (y === currentYear && m === currentMonth && d === currentDay) {
+                                isToday = true;
+                            }
                         }
                     }
                 }
@@ -292,8 +316,8 @@
                     borderClass = 'border-b border-slate-300';
                 }
 
-                // Dodatek za krepko obarvanje besedila v stolpcu "ZADNJI OBISK", če ustreza tekočemu dnevu
-                const zadnjiObiskStyle = `text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap ${isToday ? 'font-bold text-slate-800' : ''}`;
+                // Krepko obarvanje stolpca "ZADnjI OBISK", če datum ustreza tekočemu dnevu
+                const zadnjiObiskStyle = `text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap ${isToday ? 'font-bold text-slate-900' : ''}`;
 
                 const tr = document.createElement('tr');
                 tr.className = `hover:bg-slate-50 transition ${borderClass}`;
