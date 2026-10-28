@@ -207,6 +207,12 @@
 
             let totalVzponov = 0;
 
+            // Priprava tekočega datuma za primerjavo
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            const currentDay = now.getDate();
+
             // 2. Korak: Izris tabele
             data.forEach(row => {
                 const uvrstitev = row[0] ? row[0].replace('.', '').trim() : '';
@@ -220,6 +226,31 @@
                 const email = row[4] ? row[4].trim() : '';
 
                 totalVzponov += stVzponov;
+
+                // Preverjanje, ali se datum zadnjega obiska ujema s tekočim dnevom
+                let isToday = false;
+                if (zadnjiObisk) {
+                    const cleanDateStr = zadnjiObisk.trim();
+                    // Poskus razčlenitve datuma (npr. "DD. MM. YYYY", "D.M.YYYY" ali ISO oblika "YYYY-MM-DD")
+                    const parts = cleanDateStr.split(/[\.\-\/]\s*/);
+                    if (parts.length >= 3) {
+                        let y, m, d;
+                        if (parts[0].length === 4) {
+                            // Oblika YYYY-MM-DD
+                            y = parseInt(parts[0], 10);
+                            m = parseInt(parts[1], 10);
+                            d = parseInt(parts[2], 10);
+                        } else {
+                            // Oblika DD. MM. YYYY
+                            d = parseInt(parts[0], 10);
+                            m = parseInt(parts[1], 10);
+                            y = parseInt(parts[2], 10);
+                        }
+                        if (y === currentYear && m === currentMonth && d === currentDay) {
+                            isToday = true;
+                        }
+                    }
+                }
 
                 // Sestavimo vsebino celice za ime (če je soimenjak, dodamo email v novo vrstico spodaj)
                 let cellImeContent = `<div>${imeTekst}</div>`;
@@ -261,13 +292,16 @@
                     borderClass = 'border-b border-slate-300';
                 }
 
+                // Dodatek za krepko obarvanje besedila v stolpcu "ZADNJI OBISK", če ustreza tekočemu dnevu
+                const zadnjiObiskStyle = `text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap ${isToday ? 'font-bold text-slate-800' : ''}`;
+
                 const tr = document.createElement('tr');
                 tr.className = `hover:bg-slate-50 transition ${borderClass}`;
                 tr.innerHTML = `
                     <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${uvrstitevBadge}</td>
                     <td class="py-2.5 px-1.5 sm:px-3 ${nameStyleClass} leading-tight">${cellImeContent}</td>
                     <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${vzponovBadge}</td>
-                    <td class="py-2.5 px-1.5 sm:px-3 text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap">${zadnjiObisk}</td>
+                    <td class="py-2.5 px-1.5 sm:px-3 ${zadnjiObiskStyle}">${zadnjiObisk}</td>
                 `;
                 tbody.appendChild(tr);
             });
