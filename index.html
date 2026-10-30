@@ -63,20 +63,20 @@
             outline: none;
         }
 
-        /* Animacija za utripanje / povečevanje besedila zadnjega današnjega obiska */
-        @keyframes pulseScale {
+        /* Animacija dihanja (povečevanje in zmanjševanje velikosti) */
+        @keyframes textBreathe {
             0%, 100% {
                 transform: scale(1);
             }
             50% {
-                transform: scale(1.15);
+                transform: scale(1.08);
             }
         }
 
-        .pulse-latest-visit {
+        .breathe-effect {
             display: inline-block;
+            animation: textBreathe 2.5s ease-in-out infinite;
             transform-origin: right center;
-            animation: pulseScale 1.5s infinite ease-in-out;
         }
     </style>
 </head>
@@ -234,11 +234,12 @@
                 'jul': 6, 'avg': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'dec': 11
             };
 
-            // Pomožna funkcija za preverjanje, ali datum pripada današnjemu dnevu
-            function checkIsToday(zadnjiObisk) {
+            // Pomožna funkcija za preverjanje, ali datum ustreza tekočemu dnevu
+            function checkIfToday(zadnjiObisk) {
                 if (!zadnjiObisk) return false;
                 const cleanStr = zadnjiObisk.toLowerCase();
                 
+                // Poskus 1: Prepoznavanje vzorca "28. okt" ali "28. okt."
                 for (let [mesecStr, mesecIdx] of Object.entries(slovenskiMeseci)) {
                     if (cleanStr.includes(mesecStr)) {
                         const regex = new RegExp(`(\\d{1,2})\\.?\\s*${mesecStr}`);
@@ -253,6 +254,7 @@
                     }
                 }
 
+                // Poskus 2: Standardni številčni formati
                 const parts = cleanStr.split(/[\.\-\/]\s*/);
                 if (parts.length >= 3) {
                     let y, m, d;
@@ -272,14 +274,24 @@
                 return false;
             }
 
-            // Odkrijemo prvi (povsem zadnji vpisani) obisk današnjega dne
+            // Poiskusimo najti indeks tiste vrstice, ki predstavlja POVSEM ZADNJI vzpon tekočega dne (najkasnejša ura)
             let latestTodayIndex = -1;
-            for (let i = 0; i < data.length; i++) {
-                if (checkIsToday(data[i][3])) {
-                    latestTodayIndex = i;
-                    break; // Prvi najden v tabeli je zadnji vneseni današnji obisk
+            let maxTimeMinutes = -1;
+
+            data.forEach((row, index) => {
+                const zadnjiObisk = row[3] || '';
+                if (checkIfToday(zadnjiObisk)) {
+                    const timeMatch = zadnjiObisk.toLowerCase().match(/ob\s*(\d{1,2}):(\d{2})/);
+                    let timeVal = 0;
+                    if (timeMatch) {
+                        timeVal = parseInt(timeMatch[1], 10) * 60 + parseInt(timeMatch[2], 10);
+                    }
+                    if (timeVal >= maxTimeMinutes) {
+                        maxTimeMinutes = timeVal;
+                        latestTodayIndex = index;
+                    }
                 }
-            }
+            });
 
             // 2. Korak: Izris tabele
             data.forEach((row, index) => {
@@ -289,14 +301,16 @@
                 const vzponovRaw = row[2] ? row[2].trim() : '';
                 const stVzponov = parseInt(vzponovRaw, 10) || 0;
                 const zadnjiObisk = row[3] || '';
+                
+                // Email se nahaja v 5. stolpcu (indeks 4)
                 const email = row[4] ? row[4].trim() : '';
 
                 totalVzponov += stVzponov;
 
-                const isToday = checkIsToday(zadnjiObisk);
-                const isLatestToday = (index === latestTodayIndex);
+                const isToday = checkIfToday(zadnjiObisk);
+                const isAbsoluteLatestToday = (index === latestTodayIndex);
 
-                // Sestavimo vsebino celice za ime
+                // Sestavimo vsebino celice za ime (če je soimenjak, dodamo email v novo vrstico spodaj)
                 let cellImeContent = `<div>${imeTekst}</div>`;
                 const imeClean = imeTekst.trim().toLowerCase();
                 if (nameCounts[imeClean] > 1 && email) {
@@ -336,14 +350,8 @@
                     borderClass = 'border-b border-slate-300';
                 }
 
-                // Krepko obarvanje stolpca "ZADNJI OBISK", če datum ustreza tekočemu dnevu.
-                // Če gre za povsem zadnji obisk tekočega dne, dodamo razred pulse-latest-visit.
-                const isTodayClass = isToday ? 'font-bold text-slate-900' : '';
-                const displayZadnjiObisk = isLatestToday 
-                    ? `<span class="pulse-latest-visit">${zadnjiObisk}</span>` 
-                    : zadnjiObisk;
-
-                const zadnjiObiskStyle = `text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap ${isTodayClass}`;
+                // Oblikovanje stolpca za zadnji obisk: krepko za vse današnje, dodaten 'breathe-effect' za povsem zadnjega
+                const zadnjiObiskClasses = `text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap ${isToday ? 'font-bold text-slate-900' : ''} ${isAbsoluteLatestToday ? 'breathe-effect' : ''}`;
 
                 const tr = document.createElement('tr');
                 tr.className = `hover:bg-slate-50 transition ${borderClass}`;
@@ -351,7 +359,7 @@
                     <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${uvrstitevBadge}</td>
                     <td class="py-2.5 px-1.5 sm:px-3 ${nameStyleClass} leading-tight">${cellImeContent}</td>
                     <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${vzponovBadge}</td>
-                    <td class="py-2.5 px-1.5 sm:px-3 ${zadnjiObiskStyle}">${displayZadnjiObisk}</td>
+                    <td class="py-2.5 px-1.5 sm:px-3 ${zadnjiObiskClasses}">${zadnjiObisk}</td>
                 `;
                 tbody.appendChild(tr);
             });
