@@ -1,372 +1,210 @@
-<!DOCTYPE html>
-<html lang="sl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Izziv Pečke - Lestvica vzponov</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PapaParse za branje CSV podatkov -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <!-- FontAwesome za ikone -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        /* Uskladitev pisave in ozadja */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #eaf1ed;
+<script>
+    const CSV_URLS = {
+        pohodi: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pub?output=csv&gid=1188154452",
+        kolo: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pub?output=csv&gid=474770535",
+        ekolo: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pub?output=csv&gid=2059665635"
+    };
+
+    let currentData = [];
+    let activeTab = 'pohodi';
+
+    function switchTab(tab) {
+        activeTab = tab;
+        document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.remove('active-tab'));
+        document.getElementById(`tab-${tab}`).classList.add('active-tab');
+        document.getElementById('search-input').value = '';
+        loadData(tab);
+    }
+
+    function loadData(tab) {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><p>Nalaganje podatkov...</p></td></tr>`;
+        document.getElementById('total-sum-value').innerText = '0';
+
+        const url = CSV_URLS[tab];
+        if (!url || url.includes("TUKAJ_PASTE")) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-amber-600 font-medium">Prosimo, vstavite veljavno CSV povezavo v kodo programa!</td></tr>`;
+            return;
         }
 
-        /* Glavna bela kartica */
-        .card-container {
-            background-color: #ffffff;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+        Papa.parse(url, {
+            download: true,
+            header: false,
+            skipEmptyLines: true,
+            complete: function(results) {
+                processAndRenderData(results.data);
+            },
+            error: function(err) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-500">Napaka pri nalaganju podatkov. Pridobivanje ni uspelo.</td></tr>`;
+            }
+        });
+    }
+
+    function processAndRenderData(rows) {
+        const dataRows = rows.filter(row => {
+            const imaUvrstitvov = row[0] && !isNaN(parseInt(row[0]));
+            const imaIme = row[1] && row[1].trim() !== '';
+            return imaUvrstitvov && imaIme;
+        });
+        currentData = dataRows;
+        renderTable(currentData);
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '';
+
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-slate-400">Ni najdenih rezultatov.</td></tr>`;
+            document.getElementById('total-sum-value').innerText = '0';
+            return;
         }
 
-        /* Stil za gumba/zavihke */
-        .tab-btn {
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
-            color: #475569;
-            border-radius: 12px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
+        const nameCounts = {};
+        data.forEach(row => {
+            const ime = (row[1] || '').trim().toLowerCase();
+            if (ime) nameCounts[ime] = (nameCounts[ime] || 0) + 1;
+        });
 
-        .tab-btn:hover {
-            border-color: #cbd5e1;
-            background-color: #f8fafc;
-        }
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth(); 
+        const currentDay = now.getDate();
 
-        /* Aktivni zavihek */
-        .tab-btn.active-tab {
-            border: 2px solid #2e7d32;
-            color: #2e7d32;
-            background-color: #ffffff;
-            font-weight: 700;
-            box-shadow: 0 2px 4px rgba(46, 125, 50, 0.1);
-        }
-
-        /* Vnosna polja */
-        .custom-input {
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            background-color: #ffffff;
-            transition: all 0.2s ease;
-        }
-
-        .custom-input:focus {
-            border-color: #2e7d32;
-            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
-            outline: none;
-        }
-
-        /* Dodatek za podčrtan zadnji današnji obisk */
-        .latest-today-visit {
-            font-weight: 700 !important;
-            color: #0f172a !important;
-            text-decoration: underline;
-            text-decoration-color: #16a34a;
-            text-underline-offset: 3px;
-        }
-    </style>
-</head>
-<body class="text-slate-800 min-h-screen pt-2 sm:pt-6 pb-6 px-2 sm:px-4 flex justify-center items-start">
-
-    <!-- Glavni vsebnik -->
-    <div class="card-container w-full max-w-xl p-3 sm:p-6 my-0 sm:my-auto">
-
-        <!-- Glava / Header -->
-        <header class="text-center mb-4 sm:mb-5">
-            <h1 style="color: #2e7d32; font-size: 26px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px;">
-                Izziv Pečke - lestvica
-            </h1>
-            <div>
-                <a href="https://sandimobilno.github.io/Pecke-Vpis/" class="inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
-                    <i class="fa-solid fa-arrow-left text-xs"></i> nazaj na vpis vzpona
-                </a>
-            </div>
-        </header>
-
-        <main>
-            <!-- Zavihki (Način vzpona) -->
-            <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
-                <button onclick="switchTab('pohodi')" id="tab-pohodi" class="tab-btn py-2.5 px-1 text-center text-xs sm:text-base active-tab">
-                    <i class="fa-solid fa-person-hiking mr-1.5"></i>Pohod
-                </button>
-                <button onclick="switchTab('kolo')" id="tab-kolo" class="tab-btn py-2.5 px-1 text-center text-xs sm:text-base">
-                    <i class="fa-solid fa-bicycle mr-1.5"></i>Kolo
-                </button>
-                <button onclick="switchTab('ekolo')" id="tab-ekolo" class="tab-btn py-2.5 px-1 text-center text-xs sm:text-base">
-                    <i class="fa-solid fa-bolt mr-1.5"></i>eKolo
-                </button>
-            </div>
-
-            <!-- Iskalnik -->
-            <div class="mb-4">
-                <div class="relative">
-                    <input type="text" id="search-input" onkeyup="filterTable()" placeholder="Poišči po imenu ali priimku..." 
-                           class="w-full pl-10 pr-3 py-2.5 custom-input text-slate-700 placeholder-slate-400 text-xs sm:text-sm">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-xs sm:text-sm"></i>
-                </div>
-            </div>
-
-            <!-- Tabela z rezultati -->
-            <div class="bg-white rounded-2xl overflow-hidden border-2 border-slate-300 shadow-sm">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50 text-slate-500 uppercase text-[10px] sm:text-xs font-bold tracking-wider border-b border-slate-300">
-                                <th class="py-3 px-1.5 sm:px-3 text-center w-12 sm:w-16 whitespace-nowrap">Uvr.</th>
-                                <th class="py-3 px-1.5 sm:px-3">Ime in priimek</th>
-                                <th class="py-3 px-1.5 sm:px-3 text-center whitespace-nowrap">Vzponov</th>
-                                <th class="py-3 px-1.5 sm:px-3 text-right">Zadnji obisk</th>
-                            </tr>
-                        </thead>
-                        <tbody id="table-body" class="text-xs sm:text-sm">
-                            <tr>
-                                <td colspan="4" class="text-center py-8 text-slate-400">
-                                    <i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i>
-                                    <p>Nalaganje podatkov...</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <!-- Skupni seštevek vseh vzponov -->
-                <div id="total-summary" class="bg-slate-50 border-t-2 border-slate-300 px-4 py-3 text-right text-xs sm:text-sm font-bold text-slate-700">
-                    Skupaj vzponov: <span id="total-sum-value" class="text-emerald-700">0</span>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <script>
-        const CSV_URLS = {
-            pohodi: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pub?output=csv&gid=1188154452",
-            kolo: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pub?output=csv&gid=474770535",
-            ekolo: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSzaUc7g_ZJH6-iSxHZJYvWLxzFvEiEROXZyBU-a4mieLdjiOgJ52TQHl6Qzh38qmKVLEn_gnU3PmD6/pub?output=csv&gid=2059665635"
+        const slovenskiMeseci = {
+            'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'maj': 4, 'jun': 5,
+            'jul': 6, 'avg': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'dec': 11
         };
 
-        let currentData = [];
-        let activeTab = 'pohodi';
+        let latestTodayIndex = -1;
+        let maxMinutesFound = -1;
+        
+        // Zbirnik podatkov o tem, katere vrstice so današnje
+        const todayFlags = data.map((row, index) => {
+            const zadnjiObisk = row[3] || '';
+            if (!zadnjiObisk) return false;
+            
+            const cleanStr = zadnjiObisk.toLowerCase();
+            let isToday = false;
 
-        function switchTab(tab) {
-            activeTab = tab;
-            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.remove('active-tab'));
-            document.getElementById(`tab-${tab}`).classList.add('active-tab');
-            document.getElementById('search-input').value = '';
-            loadData(tab);
-        }
-
-        function loadData(tab) {
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-2"></i><p>Nalaganje podatkov...</p></td></tr>`;
-            document.getElementById('total-sum-value').innerText = '0';
-
-            const url = CSV_URLS[tab];
-            if (!url || url.includes("TUKAJ_PASTE")) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-amber-600 font-medium">Prosimo, vstavite veljavno CSV povezavo v kodo programa!</td></tr>`;
-                return;
+            for (let [mesecStr, mesecIdx] of Object.entries(slovenskiMeseci)) {
+                if (cleanStr.includes(mesecStr)) {
+                    const match = cleanStr.match(new RegExp(`(\\d{1,2})\\.?\\s*${mesecStr}`));
+                    if (match && parseInt(match[1], 10) === currentDay && mesecIdx === currentMonth) {
+                        isToday = true;
+                    }
+                    break;
+                }
             }
 
-            Papa.parse(url, {
-                download: true,
-                header: false,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    processAndRenderData(results.data);
-                },
-                error: function(err) {
-                    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-red-500">Napaka pri nalaganju podatkov. Pridobivanje ni uspelo.</td></tr>`;
+            if (!isToday) {
+                const parts = cleanStr.split(/[\.\-\/]\s*/);
+                if (parts.length >= 3) {
+                    const d = parseInt(parts[0].length === 4 ? parts[2] : parts[0], 10);
+                    const m = parseInt(parts[1], 10) - 1;
+                    const y = parseInt(parts[0].length === 4 ? parts[0] : parts[2], 10);
+                    if (y === currentYear && m === currentMonth && d === currentDay) isToday = true;
                 }
-            });
-        }
-
-        function processAndRenderData(rows) {
-            const dataRows = rows.filter(row => {
-                const imaUvrstitvov = row[0] && !isNaN(parseInt(row[0]));
-                const imaIme = row[1] && row[1].trim() !== '';
-                return imaUvrstitvov && imaIme;
-            });
-            currentData = dataRows;
-            renderTable(currentData);
-        }
-
-        function renderTable(data) {
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
-
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-slate-400">Ni najdenih rezultatov.</td></tr>`;
-                document.getElementById('total-sum-value').innerText = '0';
-                return;
             }
 
-            const nameCounts = {};
-            data.forEach(row => {
-                const ime = (row[1] || '').trim().toLowerCase();
-                if (ime) {
-                    nameCounts[ime] = (nameCounts[ime] || 0) + 1;
-                }
-            });
-
-            let totalVzponov = 0;
-
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth(); 
-            const currentDay = now.getDate();
-
-            const slovenskiMeseci = {
-                'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'maj': 4, 'jun': 5,
-                'jul': 6, 'avg': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'dec': 11
-            };
-
-            // Hitro poiščemo indeks časovno najnovejše ure danes
-            let latestTodayIndex = -1;
-            let maxMinutesFound = -1;
-
-            data.forEach((row, index) => {
-                const zadnjiObisk = row[3] || '';
-                if (!zadnjiObisk) return;
-                const cleanStr = zadnjiObisk.toLowerCase();
-                let isToday = false;
-
-                for (let [mesecStr, mesecIdx] of Object.entries(slovenskiMeseci)) {
-                    if (cleanStr.includes(mesecStr)) {
-                        const regex = new RegExp(`(\\d{1,2})\\.?\\s*${mesecStr}`);
-                        const match = cleanStr.match(regex);
-                        if (match && parseInt(match[1], 10) === currentDay && mesecIdx === currentMonth) {
-                            isToday = true;
-                        }
-                        break;
+            if (isToday) {
+                const matchTime = zadnjiObisk.match(/(\d{1,2}):(\d{2})/);
+                if (matchTime) {
+                    const minutes = parseInt(matchTime[1], 10) * 60 + parseInt(matchTime[2], 10);
+                    if (minutes > maxMinutesFound) {
+                        maxMinutesFound = minutes;
+                        latestTodayIndex = index;
                     }
                 }
+            }
 
-                if (!isToday) {
-                    const parts = cleanStr.split(/[\.\-\/]\s*/);
-                    if (parts.length >= 3) {
-                        const d = parseInt(parts[0].length === 4 ? parts[2] : parts[0], 10);
-                        const m = parseInt(parts[0].length === 4 ? parts[1] : parts[1], 10) - 1;
-                        const y = parseInt(parts[0].length === 4 ? parts[0] : parts[2], 10);
-                        if (y === currentYear && m === currentMonth && d === currentDay) isToday = true;
-                    }
-                }
-
-                if (isToday) {
-                    const matchTime = zadnjiObisk.match(/(\d{1,2}):(\d{2})/);
-                    if (matchTime) {
-                        const minutes = parseInt(matchTime[1], 10) * 60 + parseInt(matchTime[2], 10);
-                        if (minutes > maxMinutesFound) {
-                            maxMinutesFound = minutes;
-                            latestTodayIndex = index;
-                        }
-                    }
-                }
-            });
-
-            data.forEach((row, index) => {
-                const uvrstitev = row[0] ? row[0].replace('.', '').trim() : '';
-                const uvrstitevNum = parseInt(uvrstitev, 10);
-                const imeTekst = row[1] || '';
-                const vzponovRaw = row[2] ? row[2].trim() : '';
-                const stVzponov = parseInt(vzponovRaw, 10) || 0;
-                const zadnjiObisk = row[3] || '';
-                const email = row[4] ? row[4].trim() : '';
-
-                totalVzponov += stVzponov;
-
-                let isToday = false;
-                if (zadnjiObisk) {
-                    const cleanStr = zadnjiObisk.toLowerCase();
-                    for (let [mesecStr, mesecIdx] of Object.entries(slovenskiMeseci)) {
-                        if (cleanStr.includes(mesecStr)) {
-                            const regex = new RegExp(`(\\d{1,2})\\.?\\s*${mesecStr}`);
-                            const match = cleanStr.match(regex);
-                            if (match && parseInt(match[1], 10) === currentDay && mesecIdx === currentMonth) {
-                                isToday = true;
-                            }
-                            break;
-                        }
-                    }
-                }
-
-                // Določitev stila
-                let zadnjiObiskStyle = "text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap";
-                if (index === latestTodayIndex) {
-                    zadnjiObiskStyle += " latest-today-visit";
-                } else if (isToday) {
-                    zadnjiObiskStyle += " font-bold text-slate-900";
-                }
-
-                let cellImeContent = `<div>${imeTekst}</div>`;
-                const imeClean = imeTekst.trim().toLowerCase();
-                if (nameCounts[imeClean] > 1 && email) {
-                    cellImeContent += `<div class="text-slate-400 text-[11px] sm:text-xs font-normal mt-0.5">${email}</div>`;
-                }
-
-                let uvrstitevBadge = `<span class="text-slate-400">-</span>`;
-                let vzponovBadge = `<span class="text-slate-400">-</span>`;
-
-                if (stVzponov > 0) {
-                    vzponovBadge = `<span class="bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full">${stVzponov}</span>`;
-
-                    if (uvrstitev === '1') {
-                        uvrstitevBadge = `<span class="inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 bg-amber-100 text-amber-700 font-bold rounded-full text-base sm:text-lg">🥇 1</span>`;
-                    } else if (uvrstitev === '2') {
-                        uvrstitevBadge = `<span class="inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 bg-slate-200 text-slate-700 font-bold rounded-full text-base sm:text-lg">🥈 2</span>`;
-                    } else if (uvrstitev === '3') {
-                        uvrstitevBadge = `<span class="inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 bg-amber-800/10 text-amber-900 font-bold rounded-full text-base sm:text-lg">🥉 3</span>`;
-                    } else if (!isNaN(uvrstitevNum) && uvrstitevNum >= 4 && uvrstitevNum <= 10) {
-                        uvrstitevBadge = `<span class="font-bold text-slate-700 text-sm sm:text-base">${uvrstitev}.</span>`;
-                    } else {
-                        uvrstitevBadge = `<span class="font-semibold text-slate-600">${uvrstitev}.</span>`;
-                    }
-                }
-
-                let nameStyleClass = "font-semibold text-slate-800";
-                if (!isNaN(uvrstitevNum)) {
-                    if (uvrstitevNum >= 1 && uvrstitevNum <= 3) {
-                        nameStyleClass = "font-bold text-slate-900 text-sm sm:text-base";
-                    } else if (uvrstitevNum >= 4 && uvrstitevNum <= 10) {
-                        nameStyleClass = "font-bold text-slate-800 text-xs sm:text-sm";
-                    }
-                }
-
-                let borderClass = 'border-b border-slate-100';
-                if (!isNaN(uvrstitevNum) && (uvrstitevNum === 3 || uvrstitevNum % 10 === 0)) {
-                    borderClass = 'border-b border-slate-300';
-                }
-
-                const tr = document.createElement('tr');
-                tr.className = `hover:bg-slate-50 transition ${borderClass}`;
-                tr.innerHTML = `
-                    <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${uvrstitevBadge}</td>
-                    <td class="py-2.5 px-1.5 sm:px-3 ${nameStyleClass} leading-tight">${cellImeContent}</td>
-                    <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${vzponovBadge}</td>
-                    <td class="py-2.5 px-1.5 sm:px-3 ${zadnjiObiskStyle}">${zadnjiObisk}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            document.getElementById('total-sum-value').innerText = totalVzponov;
-        }
-
-        function filterTable() {
-            const query = document.getElementById('search-input').value.toLowerCase();
-            const filtered = currentData.filter(row => {
-                const ime = (row[1] || '').toLowerCase();
-                return ime.includes(query);
-            });
-            renderTable(filtered);
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadData('pohodi');
+            return isToday;
         });
-    </script>
-</body>
-</html>
+
+        let totalVzponov = 0;
+
+        data.forEach((row, index) => {
+            const uvrstitev = row[0] ? row[0].replace('.', '').trim() : '';
+            const uvrstitevNum = parseInt(uvrstitev, 10);
+            const imeTekst = row[1] || '';
+            const stVzponov = parseInt(row[2], 10) || 0;
+            const zadnjiObisk = row[3] || '';
+            const email = row[4] ? row[4].trim() : '';
+            const isToday = todayFlags[index];
+
+            totalVzponov += stVzponov;
+
+            // Določitev stila za zadnji obisk
+            let zadnjiObiskStyle = "text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap";
+            if (index === latestTodayIndex) {
+                zadnjiObiskStyle += " latest-today-visit";
+            } else if (isToday) {
+                zadnjiObiskStyle += " font-bold text-slate-900";
+            }
+
+            let cellImeContent = `<div>${imeTekst}</div>`;
+            const imeClean = imeTekst.trim().toLowerCase();
+            if (nameCounts[imeClean] > 1 && email) {
+                cellImeContent += `<div class="text-slate-400 text-[11px] sm:text-xs font-normal mt-0.5">${email}</div>`;
+            }
+
+            let uvrstitevBadge = `<span class="text-slate-400">-</span>`;
+            let vzponovBadge = `<span class="text-slate-400">-</span>`;
+
+            if (stVzponov > 0) {
+                vzponovBadge = `<span class="bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full">${stVzponov}</span>`;
+
+                if (uvrstitev === '1') {
+                    uvrstitevBadge = `<span class="inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 bg-amber-100 text-amber-700 font-bold rounded-full text-base sm:text-lg">🥇 1</span>`;
+                } else if (uvrstitev === '2') {
+                    uvrstitevBadge = `<span class="inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 bg-slate-200 text-slate-700 font-bold rounded-full text-base sm:text-lg">🥈 2</span>`;
+                } else if (uvrstitev === '3') {
+                    uvrstitevBadge = `<span class="inline-flex items-center justify-center min-w-[28px] h-7 px-1.5 bg-amber-800/10 text-amber-900 font-bold rounded-full text-base sm:text-lg">🥉 3</span>`;
+                } else if (uvrstitevNum >= 4 && uvrstitevNum <= 10) {
+                    uvrstitevBadge = `<span class="font-bold text-slate-700 text-sm sm:text-base">${uvrstitev}.</span>`;
+                } else {
+                    uvrstitevBadge = `<span class="font-semibold text-slate-600">${uvrstitev}.</span>`;
+                }
+            }
+
+            let nameStyleClass = "font-semibold text-slate-800";
+            if (!isNaN(uvrstitevNum)) {
+                if (uvrstitevNum >= 1 && uvrstitevNum <= 3) {
+                    nameStyleClass = "font-bold text-slate-900 text-sm sm:text-base";
+                } else if (uvrstitevNum >= 4 && uvrstitevNum <= 10) {
+                    nameStyleClass = "font-bold text-slate-800 text-xs sm:text-sm";
+                }
+            }
+
+            let borderClass = 'border-b border-slate-100';
+            if (!isNaN(uvrstitevNum) && (uvrstitevNum === 3 || uvrstitevNum % 10 === 0)) {
+                borderClass = 'border-b border-slate-300';
+            }
+
+            const tr = document.createElement('tr');
+            tr.className = `hover:bg-slate-50 transition ${borderClass}`;
+            tr.innerHTML = `
+                <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${uvrstitevBadge}</td>
+                <td class="py-2.5 px-1.5 sm:px-3 ${nameStyleClass} leading-tight">${cellImeContent}</td>
+                <td class="py-2.5 px-1.5 sm:px-3 text-center whitespace-nowrap">${vzponovBadge}</td>
+                <td class="py-2.5 px-1.5 sm:px-3 ${zadnjiObiskStyle}">${zadnjiObisk}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('total-sum-value').innerText = totalVzponov;
+    }
+
+    function filterTable() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const filtered = currentData.filter(row => {
+            const ime = (row[1] || '').toLowerCase();
+            return ime.includes(query);
+        });
+        renderTable(filtered);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadData('pohodi');
+    });
+</script>
