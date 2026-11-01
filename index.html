@@ -63,12 +63,12 @@
             outline: none;
         }
 
-        /* Poseben stil za časovno povsem zadnji današnji obisk (krepko + podčrtano) */
+        /* Dodatek za podčrtan zadnji današnji obisk */
         .latest-today-visit {
             font-weight: 700 !important;
             color: #0f172a !important;
             text-decoration: underline;
-            text-decoration-color: #16a34a; /* zelena črta */
+            text-decoration-color: #16a34a;
             text-underline-offset: 3px;
         }
     </style>
@@ -195,16 +195,6 @@
             renderTable(currentData);
         }
 
-        // Pomožna funkcija za pretvorbo ure (npr. "ob 10:56") v minute
-        function parseTimeToMinutes(timeStr) {
-            if (!timeStr) return -1;
-            const match = timeStr.match(/(\d{1,2}):(\d{2})/);
-            if (match) {
-                return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
-            }
-            return -1;
-        }
-
         function renderTable(data) {
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
@@ -227,7 +217,7 @@
 
             const now = new Date();
             const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth(); // 0-11
+            const currentMonth = now.getMonth(); 
             const currentDay = now.getDate();
 
             const slovenskiMeseci = {
@@ -235,14 +225,13 @@
                 'jul': 6, 'avg': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'dec': 11
             };
 
-            // Poiščimo indeks časovno najnovejše opravljenega obiska danes
+            // Hitro poiščemo indeks časovno najnovejše ure danes
             let latestTodayIndex = -1;
             let maxMinutesFound = -1;
 
             data.forEach((row, index) => {
                 const zadnjiObisk = row[3] || '';
                 if (!zadnjiObisk) return;
-
                 const cleanStr = zadnjiObisk.toLowerCase();
                 let isToday = false;
 
@@ -250,11 +239,8 @@
                     if (cleanStr.includes(mesecStr)) {
                         const regex = new RegExp(`(\\d{1,2})\\.?\\s*${mesecStr}`);
                         const match = cleanStr.match(regex);
-                        if (match) {
-                            const d = parseInt(match[1], 10);
-                            if (d === currentDay && mesecIdx === currentMonth) {
-                                isToday = true;
-                            }
+                        if (match && parseInt(match[1], 10) === currentDay && mesecIdx === currentMonth) {
+                            isToday = true;
                         }
                         break;
                     }
@@ -263,32 +249,25 @@
                 if (!isToday) {
                     const parts = cleanStr.split(/[\.\-\/]\s*/);
                     if (parts.length >= 3) {
-                        let y, m, d;
-                        if (parts[0].length === 4) {
-                            y = parseInt(parts[0], 10);
-                            m = parseInt(parts[1], 10) - 1;
-                            d = parseInt(parts[2], 10);
-                        } else {
-                            d = parseInt(parts[0], 10);
-                            m = parseInt(parts[1], 10) - 1;
-                            y = parseInt(parts[2], 10);
-                        }
-                        if (y === currentYear && m === currentMonth && d === currentDay) {
-                            isToday = true;
-                        }
+                        const d = parseInt(parts[0].length === 4 ? parts[2] : parts[0], 10);
+                        const m = parseInt(parts[0].length === 4 ? parts[1] : parts[1], 10) - 1;
+                        const y = parseInt(parts[0].length === 4 ? parts[0] : parts[2], 10);
+                        if (y === currentYear && m === currentMonth && d === currentDay) isToday = true;
                     }
                 }
 
                 if (isToday) {
-                    const minutes = parseTimeToMinutes(zadnjiObisk);
-                    if (minutes > maxMinutesFound) {
-                        maxMinutesFound = minutes;
-                        latestTodayIndex = index;
+                    const matchTime = zadnjiObisk.match(/(\d{1,2}):(\d{2})/);
+                    if (matchTime) {
+                        const minutes = parseInt(matchTime[1], 10) * 60 + parseInt(matchTime[2], 10);
+                        if (minutes > maxMinutesFound) {
+                            maxMinutesFound = minutes;
+                            latestTodayIndex = index;
+                        }
                     }
                 }
             });
 
-            // Izris tabele
             data.forEach((row, index) => {
                 const uvrstitev = row[0] ? row[0].replace('.', '').trim() : '';
                 const uvrstitevNum = parseInt(uvrstitev, 10);
@@ -296,7 +275,6 @@
                 const vzponovRaw = row[2] ? row[2].trim() : '';
                 const stVzponov = parseInt(vzponovRaw, 10) || 0;
                 const zadnjiObisk = row[3] || '';
-                
                 const email = row[4] ? row[4].trim() : '';
 
                 totalVzponov += stVzponov;
@@ -308,39 +286,15 @@
                         if (cleanStr.includes(mesecStr)) {
                             const regex = new RegExp(`(\\d{1,2})\\.?\\s*${mesecStr}`);
                             const match = cleanStr.match(regex);
-                            if (match) {
-                                const d = parseInt(match[1], 10);
-                                if (d === currentDay && mesecIdx === currentMonth) {
-                                    isToday = true;
-                                }
+                            if (match && parseInt(match[1], 10) === currentDay && mesecIdx === currentMonth) {
+                                isToday = true;
                             }
                             break;
                         }
                     }
-
-                    if (!isToday) {
-                        const parts = cleanStr.split(/[\.\-\/]\s*/);
-                        if (parts.length >= 3) {
-                            let y, m, d;
-                            if (parts[0].length === 4) {
-                                y = parseInt(parts[0], 10);
-                                m = parseInt(parts[1], 10) - 1;
-                                d = parseInt(parts[2], 10);
-                            } else {
-                                d = parseInt(parts[0], 10);
-                                m = parseInt(parts[1], 10) - 1;
-                                y = parseInt(parts[2], 10);
-                            }
-                            if (y === currentYear && m === currentMonth && d === currentDay) {
-                                isToday = true;
-                            }
-                        }
-                    }
                 }
 
-                // Določitev stila za stolpec "Zadnji obisk":
-                // - Časovno povsem zadnji današnji obisk dobi razred "latest-today-visit" (krepko + podčrtano)
-                // - Ostali današnji obiski ostanejo standardno krepki
+                // Določitev stila
                 let zadnjiObiskStyle = "text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap";
                 if (index === latestTodayIndex) {
                     zadnjiObiskStyle += " latest-today-visit";
