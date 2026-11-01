@@ -63,22 +63,13 @@
             outline: none;
         }
 
-        /* Gladek in zvezni učinek s senco za mobilne naprave (brez utripanja) */
-        @keyframes textGlow {
-            0%, 100% {
-                text-shadow: 0 0 0px rgba(15, 23, 42, 0);
-                opacity: 0.7;
-            }
-            50% {
-                text-shadow: 0.3px 0 0.8px rgba(15, 23, 42, 0.8), -0.3px 0 0.8px rgba(15, 23, 42, 0.8);
-                opacity: 1;
-            }
-        }
-
-        .animate-font-pulse {
-            animation: textGlow 2s ease-in-out infinite;
-            font-weight: 600;
+        /* Poseben stil za časovno povsem zadnji današnji obisk (krepko + podčrtano) */
+        .latest-today-visit {
+            font-weight: 700 !important;
             color: #0f172a !important;
+            text-decoration: underline;
+            text-decoration-color: #16a34a; /* zelena črta */
+            text-underline-offset: 3px;
         }
     </style>
 </head>
@@ -204,6 +195,7 @@
             renderTable(currentData);
         }
 
+        // Pomožna funkcija za pretvorbo ure (npr. "ob 10:56") v minute
         function parseTimeToMinutes(timeStr) {
             if (!timeStr) return -1;
             const match = timeStr.match(/(\d{1,2}):(\d{2})/);
@@ -231,9 +223,11 @@
                 }
             });
 
+            let totalVzponov = 0;
+
             const now = new Date();
             const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth();
+            const currentMonth = now.getMonth(); // 0-11
             const currentDay = now.getDate();
 
             const slovenskiMeseci = {
@@ -241,6 +235,7 @@
                 'jul': 6, 'avg': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'dec': 11
             };
 
+            // Poiščimo indeks časovno najnovejše opravljenega obiska danes
             let latestTodayIndex = -1;
             let maxMinutesFound = -1;
 
@@ -293,8 +288,7 @@
                 }
             });
 
-            let totalVzponov = 0;
-
+            // Izris tabele
             data.forEach((row, index) => {
                 const uvrstitev = row[0] ? row[0].replace('.', '').trim() : '';
                 const uvrstitevNum = parseInt(uvrstitev, 10);
@@ -302,6 +296,7 @@
                 const vzponovRaw = row[2] ? row[2].trim() : '';
                 const stVzponov = parseInt(vzponovRaw, 10) || 0;
                 const zadnjiObisk = row[3] || '';
+                
                 const email = row[4] ? row[4].trim() : '';
 
                 totalVzponov += stVzponov;
@@ -343,9 +338,12 @@
                     }
                 }
 
+                // Določitev stila za stolpec "Zadnji obisk":
+                // - Časovno povsem zadnji današnji obisk dobi razred "latest-today-visit" (krepko + podčrtano)
+                // - Ostali današnji obiski ostanejo standardno krepki
                 let zadnjiObiskStyle = "text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap";
                 if (index === latestTodayIndex) {
-                    zadnjiObiskStyle += " animate-font-pulse";
+                    zadnjiObiskStyle += " latest-today-visit";
                 } else if (isToday) {
                     zadnjiObiskStyle += " font-bold text-slate-900";
                 }
