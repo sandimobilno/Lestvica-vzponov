@@ -63,19 +63,21 @@
             outline: none;
         }
 
-        /* Continuous font-weight pulse za časovno najnovejši obisk */
-        @keyframes fontPulse {
+        /* Popolnoma tekoča animacija za mobilne naprave (zvezno spreminjanje prosojnosti in debeline) */
+        @keyframes smoothPulse {
             0%, 100% {
+                opacity: 0.65;
                 font-weight: 400;
             }
             50% {
-                font-weight: 800;
+                opacity: 1;
+                font-weight: 700;
             }
         }
 
         .animate-font-pulse {
-            animation: fontPulse 2s ease-in-out infinite;
-            color: #0f172a !important; /* text-slate-900 za opazen učinek */
+            animation: smoothPulse 2.2s ease-in-out infinite;
+            color: #1e293b !important;
         }
     </style>
 </head>
@@ -201,7 +203,6 @@
             renderTable(currentData);
         }
 
-        // Pomožna funkcija za pretvorbo niza ure (npr. "ob 10:56" ali "10:56") v minute od začetka dneva
         function parseTimeToMinutes(timeStr) {
             if (!timeStr) return -1;
             const match = timeStr.match(/(\d{1,2}):(\d{2})/);
@@ -221,7 +222,6 @@
                 return;
             }
 
-            // 1. Korak: Preštejemo ponovitve imena in priimka za soimenjake
             const nameCounts = {};
             data.forEach(row => {
                 const ime = (row[1] || '').trim().toLowerCase();
@@ -230,10 +230,9 @@
                 }
             });
 
-            // Priprava tekočega datuma (lokalni datum naprave)
             const now = new Date();
             const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth(); // 0-11
+            const currentMonth = now.getMonth();
             const currentDay = now.getDate();
 
             const slovenskiMeseci = {
@@ -241,7 +240,6 @@
                 'jul': 6, 'avg': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'dec': 11
             };
 
-            // 2. Korak: Poiščimo časovno povsem NAJNOVEJŠI obisk današnjega dne (največ minut v dnevu)
             let latestTodayIndex = -1;
             let maxMinutesFound = -1;
 
@@ -252,7 +250,6 @@
                 const cleanStr = zadnjiObisk.toLowerCase();
                 let isToday = false;
 
-                // Preverjanje ujemanja z današnjim dnem
                 for (let [mesecStr, mesecIdx] of Object.entries(slovenskiMeseci)) {
                     if (cleanStr.includes(mesecStr)) {
                         const regex = new RegExp(`(\\d{1,2})\\.?\\s*${mesecStr}`);
@@ -297,7 +294,6 @@
 
             let totalVzponov = 0;
 
-            // 3. Korak: Izris tabele
             data.forEach((row, index) => {
                 const uvrstitev = row[0] ? row[0].replace('.', '').trim() : '';
                 const uvrstitevNum = parseInt(uvrstitev, 10);
@@ -309,7 +305,6 @@
 
                 totalVzponov += stVzponov;
 
-                // Ponovno preverimo, ali vrstica pripada današnjemu dnevu za navadno krepko obarvanje
                 let isToday = false;
                 if (zadnjiObisk) {
                     const cleanStr = zadnjiObisk.toLowerCase();
@@ -347,9 +342,6 @@
                     }
                 }
 
-                // Določanje stila za datum:
-                // Če je to indeks časovno najnovejše opravljenega obiska danes -> dodamo `animate-font-pulse`.
-                // Ostali današnji obiski imajo običajno krepko pisavo (`font-bold text-slate-900`).
                 let zadnjiObiskStyle = "text-right text-slate-500 text-[11px] sm:text-xs leading-tight whitespace-nowrap";
                 if (index === latestTodayIndex) {
                     zadnjiObiskStyle += " animate-font-pulse";
@@ -357,7 +349,6 @@
                     zadnjiObiskStyle += " font-bold text-slate-900";
                 }
 
-                // Sestavimo vsebino celice za ime (soimenjaki)
                 let cellImeContent = `<div>${imeTekst}</div>`;
                 const imeClean = imeTekst.trim().toLowerCase();
                 if (nameCounts[imeClean] > 1 && email) {
@@ -408,7 +399,6 @@
                 tbody.appendChild(tr);
             });
 
-            // Posodobitev prikaza skupnega seštevka
             document.getElementById('total-sum-value').innerText = totalVzponov;
         }
 
@@ -421,7 +411,6 @@
             renderTable(filtered);
         }
 
-        // Začetno nalaganje po tem, ko se DOM v celoti naloži
         document.addEventListener('DOMContentLoaded', () => {
             loadData('pohodi');
         });
