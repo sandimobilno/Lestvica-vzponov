@@ -18,6 +18,16 @@
             background-color: #eaf1ed;
         }
 
+        /* Preprečitev senčenja ob dotiku in označevanja besedila na mobilnih napravah */
+        tr {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        table {
+            -webkit-user-select: none; /* za Safari / iOS */
+            user-select: none;
+        }
+
         /* Glavna bela kartica */
         .card-container {
             background-color: #ffffff;
